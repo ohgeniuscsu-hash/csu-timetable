@@ -21,3 +21,12 @@ def test_with_spaces():
 def test_invalid_raises():
     with pytest.raises(ValueError):
         parse_period("abc")
+
+
+def test_reversed_range_normalized():
+    assert parse_period("5-3") == {3, 4, 5}
+
+
+def test_garbage_with_extra_parts_raises():
+    with pytest.raises(ValueError):
+        parse_period("1-5-9")
