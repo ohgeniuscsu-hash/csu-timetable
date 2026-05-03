@@ -3,7 +3,7 @@ from pathlib import Path
 
 import streamlit as st
 
-from timetable.db import list_semesters, get_latest_run
+from timetable.db import list_semesters, get_latest_run, list_run_history
 from timetable.grid import build_grid
 
 
@@ -55,6 +55,30 @@ st.markdown(f"""
       color: #1A2C5E !important;
   }}
 
+  /* ── 탭 ── */
+  .stTabs [data-baseweb="tab-list"] {{
+      background-color: #FFFFFF;
+      border-radius: 8px;
+      padding: 4px;
+  }}
+  .stTabs [data-baseweb="tab"] {{
+      color: #6B80A0 !important;
+      font-weight: 500;
+  }}
+  .stTabs [data-baseweb="tab"] p,
+  .stTabs [data-baseweb="tab"] div {{
+      color: #6B80A0 !important;
+  }}
+  .stTabs [data-baseweb="tab"][aria-selected="true"] {{
+      color: #1A2C5E !important;
+      font-weight: 700;
+      border-bottom: 3px solid #F0C040;
+  }}
+  .stTabs [data-baseweb="tab"][aria-selected="true"] p,
+  .stTabs [data-baseweb="tab"][aria-selected="true"] div {{
+      color: #1A2C5E !important;
+  }}
+
   /* ── 캡션 ── */
   small, .stCaption {{ color: #5A6E8C !important; }}
 </style>
@@ -78,47 +102,76 @@ if not semesters:
     st.info("아직 배정된 시간표가 없습니다.")
     st.stop()
 
-# ── Controls ──────────────────────────────────────────────────
-ctrl1, ctrl2, ctrl3 = st.columns([2, 2, 2])
-with ctrl1:
-    selected_semester = st.selectbox("학기", semesters)
+tab1, tab2 = st.tabs(["📅 시간표", "📋 변경 이력"])
 
-# ── Fetch data ────────────────────────────────────────────────
-run = get_latest_run(selected_semester)
-if run is None:
-    st.info("선택한 학기의 데이터가 없습니다.")
-    st.stop()
+with tab1:
+    # ── Controls ─────────────────────────────────────────────
+    ctrl1, ctrl2, ctrl3 = st.columns([2, 2, 2])
+    with ctrl1:
+        selected_semester = st.selectbox("학기", semesters)
 
-df = run["result_df"]
+    # ── Fetch data ───────────────────────────────────────────
+    run = get_latest_run(selected_semester)
+    if run is None:
+        st.info("선택한 학기의 데이터가 없습니다.")
+        st.stop()
 
-# ── Filters ───────────────────────────────────────────────────
-all_schools = sorted(df["학과"].dropna().unique().tolist()) if "학과" in df.columns else []
-with ctrl2:
-    school_options = ["전체"] + all_schools
-    selected_school = st.selectbox("대학원", school_options)
+    df = run["result_df"]
 
-if selected_school != "전체":
-    filtered_df = df[df["학과"] == selected_school]
-else:
-    filtered_df = df
+    # ── Filters ──────────────────────────────────────────────
+    all_schools = sorted(df["학과"].dropna().unique().tolist()) if "학과" in df.columns else []
+    with ctrl2:
+        school_options = ["전체"] + all_schools
+        selected_school = st.selectbox("대학원", school_options)
 
-all_majors = sorted(filtered_df["전공"].dropna().unique().tolist()) if "전공" in filtered_df.columns else []
-with ctrl3:
-    major_options = ["전체"] + all_majors
-    selected_major = st.selectbox("전공", major_options)
+    if selected_school != "전체":
+        filtered_df = df[df["학과"] == selected_school]
+    else:
+        filtered_df = df
 
-if selected_major != "전체":
-    filtered_df = filtered_df[filtered_df["전공"] == selected_major]
+    all_majors = sorted(filtered_df["전공"].dropna().unique().tolist()) if "전공" in filtered_df.columns else []
+    with ctrl3:
+        major_options = ["전체"] + all_majors
+        selected_major = st.selectbox("전공", major_options)
 
-# ── Render grid ───────────────────────────────────────────────
-st.markdown("### 강의 시간표")
+    if selected_major != "전체":
+        filtered_df = filtered_df[filtered_df["전공"] == selected_major]
 
-if filtered_df.empty:
-    st.info("해당 조건의 과목이 없습니다.")
-else:
-    grid_html = build_grid(filtered_df)
-    st.markdown(grid_html, unsafe_allow_html=True)
+    # ── Render grid ──────────────────────────────────────────
+    st.markdown("### 강의 시간표")
 
-# ── Footer ────────────────────────────────────────────────────
-created = run["created_at"][:16].replace("T", " ")
-st.caption(f"마지막 업데이트: {created}  |  v{run['version']}  |  학기: {selected_semester}")
+    if filtered_df.empty:
+        st.info("해당 조건의 과목이 없습니다.")
+    else:
+        grid_html = build_grid(filtered_df)
+        st.markdown(grid_html, unsafe_allow_html=True)
+
+    # ── Footer ───────────────────────────────────────────────
+    created = run["created_at"][:16].replace("T", " ")
+    st.caption(f"마지막 업데이트: {created}  |  v{run['version']}  |  학기: {selected_semester}")
+
+with tab2:
+    st.markdown("### 📋 변경 이력")
+    try:
+        history = list_run_history()
+    except Exception as e:
+        st.error(f"데이터를 불러올 수 없습니다: {e}")
+        history = []
+
+    if not history:
+        st.info("저장된 이력이 없습니다.")
+    else:
+        for item in history:
+            created_str = item["created_at"][:16].replace("T", " ")
+            st.markdown(
+                f"""<div style="background:#FFFFFF;border-radius:10px;padding:14px 20px;
+                    margin-bottom:10px;border-left:4px solid #F0C040;">
+                  <span style="font-weight:700;font-size:16px;color:#1A2C5E !important;">
+                    {item['semester']}
+                  </span>
+                  <span style="color:#5A6E8C !important;font-size:13px;margin-left:12px;">
+                    v{item['version']} 기준 &nbsp;·&nbsp; 마지막 업데이트 {created_str}
+                  </span>
+                </div>""",
+                unsafe_allow_html=True,
+            )
