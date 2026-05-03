@@ -27,20 +27,41 @@ logo_tag = (
 
 st.markdown(f"""
 <style>
+  /* ── Streamlit 기본 UI 제거 ── */
   header[data-testid="stHeader"] {{ display: none !important; }}
+  [data-testid="stToolbar"] {{ display: none !important; }}
+  footer[data-testid="stFooter"] {{ display: none !important; }}
+  #MainMenu {{ display: none !important; }}
+
+  /* ── 레이아웃 ── */
   .block-container {{ padding-top: 0 !important; }}
   .stApp {{ background-color: #F0F4FA; }}
-  .stApp p, .stApp label, .stApp span,
-  .stMarkdown, [data-testid="stMarkdownContainer"] p {{
+
+  /* ── 본문 텍스트 (헤더 div 제외하고 정확히 타겟팅) ── */
+  [data-testid="stMarkdownContainer"] p,
+  [data-testid="stMarkdownContainer"] li,
+  [data-testid="stMarkdownContainer"] span,
+  .stApp label,
+  .stApp .stCaption p,
+  .stApp .stCaption span {{
       color: #1A2C5E !important;
   }}
-  h1, h2, h3, h4 {{ color: #1A2C5E !important; }}
+  h1, h2, h3, h4, h5, h6 {{ color: #1A2C5E !important; }}
+
+  /* ── 셀렉트박스 ── */
   .stSelectbox label {{ color: #1A2C5E !important; font-weight: 600 !important; }}
+  .stSelectbox [data-baseweb="select"] > div {{
+      background-color: #FFFFFF !important;
+      color: #1A2C5E !important;
+  }}
+
+  /* ── 캡션 ── */
+  small, .stCaption {{ color: #5A6E8C !important; }}
 </style>
 <div style="background:#1A2C5E;padding:14px 40px;display:flex;
             align-items:center;gap:16px;margin-bottom:28px;">
   {logo_tag}
-  <span style="color:#FFFFFF;font-size:20px;font-weight:700;letter-spacing:-0.3px;">
+  <span style="color:#FFFFFF !important;font-size:20px;font-weight:700;letter-spacing:-0.3px;">
     총신대학교 대학원&nbsp;&nbsp;시간표
   </span>
 </div>
